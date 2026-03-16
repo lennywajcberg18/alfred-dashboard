@@ -75,6 +75,8 @@ export default function Alfred(props) {
   var [addingToCol, setAddingToCol] = useState(null);
   var [tplCol, setTplCol] = useState(null);
   var [collapsed, setCollapsed] = useState(false);
+  var [newColName, setNewColName] = useState("");
+  var [addingCol, setAddingCol] = useState(false);
   var aiEndRef = useRef(null);
 
   useEffect(function () {
@@ -286,6 +288,9 @@ export default function Alfred(props) {
                       <div style={{ display: "flex", gap: 2 }}>
                         <button onClick={function () { setTplCol(tplCol === col.id ? null : col.id); }} style={{ background: "transparent", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 12, padding: "0 3px" }}>T</button>
                         <button onClick={function () { setAddingToCol(col.id); }} style={{ background: "transparent", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 15, padding: "0 3px" }}>+</button>
+                        {boardData.columns.length > 2 && (
+                          <button onClick={function () { if (col.cards.length === 0 || confirm("Deletar coluna '" + col.title + "' e seus " + col.cards.length + " cards?")) { update(function (d) { d.columns = d.columns.filter(function (c) { return c.id !== col.id; }); }); } }} style={{ background: "transparent", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 13, padding: "0 3px" }}>x</button>
+                        )}
                       </div>
                     </div>
                     {tplCol === col.id && (
@@ -295,7 +300,7 @@ export default function Alfred(props) {
                       </div>
                     )}
                     <div style={{ padding: "2px 8px 8px", overflowY: "auto", flex: 1 }}>
-                      {col.cards.filter(function (c) { if (!search) return true; return c.title.toLowerCase().indexOf(search.toLowerCase()) >= 0; }).map(function (card) {
+                      {col.cards.filter(function (c) { if (!search) return true; return c.title.toLowerCase().indexOf(search.toLowerCase()) >= 0; }).sort(function (a, b) { var order = { alta: 0, media: 1, baixa: 2 }; var pa = order[a.priority] !== undefined ? order[a.priority] : 1; var pb = order[b.priority] !== undefined ? order[b.priority] : 1; return pa - pb; }).map(function (card) {
                         var ckD = 0, ckT = 0;
                         if (card.checklist) { ckT = card.checklist.length; card.checklist.forEach(function (ck) { if (ck.done) ckD++; }); }
                         var prio = PRIORITIES[card.priority];
@@ -319,6 +324,24 @@ export default function Alfred(props) {
                   </div>
                 );
               })}
+
+              {/* Add new column */}
+              {addingCol ? (
+                <div style={{ minWidth: 260, flex: "0 0 260px", background: C.surface, borderRadius: 12, border: "1px solid " + C.accent + "60", padding: 14 }}>
+                  <input autoFocus value={newColName} onChange={function (e) { setNewColName(e.target.value); }} onKeyDown={function (e) {
+                    if (e.key === "Enter" && newColName.trim()) {
+                      update(function (d) { d.columns.push({ id: makeId(), title: newColName.trim(), cards: [] }); });
+                      setNewColName(""); setAddingCol(false);
+                    }
+                  }} placeholder="Nome da coluna..." style={{ width: "100%", background: C.bg, border: "1px solid " + C.borderLight, borderRadius: 8, padding: "10px 12px", color: C.text, fontSize: 13, outline: "none", fontFamily: "inherit", boxSizing: "border-box", marginBottom: 8 }} />
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button onClick={function () { if (newColName.trim()) { update(function (d) { d.columns.push({ id: makeId(), title: newColName.trim(), cards: [] }); }); setNewColName(""); setAddingCol(false); } }} style={{ flex: 1, padding: "8px", borderRadius: 8, border: "none", background: C.accent, color: "#fff", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>Criar</button>
+                    <button onClick={function () { setAddingCol(false); setNewColName(""); }} style={{ padding: "8px 14px", borderRadius: 8, border: "1px solid " + C.borderLight, background: "transparent", color: C.textMuted, cursor: "pointer", fontSize: 12, fontFamily: "inherit" }}>x</button>
+                  </div>
+                </div>
+              ) : (
+                <button onClick={function () { setAddingCol(true); }} style={{ minWidth: 260, flex: "0 0 260px", padding: 16, borderRadius: 12, border: "2px dashed " + C.borderLight, background: "transparent", color: C.textMuted, cursor: "pointer", fontSize: 13, fontFamily: "inherit", fontWeight: 500, height: "fit-content" }}>+ Nova Coluna</button>
+              )}
             </div>
           </div>
         )}
